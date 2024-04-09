@@ -301,11 +301,11 @@ local SectionItemCommit = Component.new(function(item)
 end)
 
 local SectionItemRebase = Component.new(function(item)
-  if item.oid then
-    local action_hl = (item.done and "NeogitRebaseDone")
-      or (item.action == "onto" and "NeogitGraphBlue")
-      or "NeogitGraphOrange"
+  local action_hl = (item.done and "NeogitRebaseDone")
+    or (item.action == "onto" and "NeogitGraphBlue")
+    or "NeogitGraphOrange"
 
+  if item.oid then
     return row({
       text(item.stopped and "> " or "  "),
       text.highlight(action_hl)(util.pad_right(item.action, 6)),
@@ -316,7 +316,8 @@ local SectionItemRebase = Component.new(function(item)
     }, { yankable = item.oid, oid = item.oid })
   else
     return row {
-      text.highlight("NeogitGraphOrange")(item.action),
+      text(item.stopped and "> " or "  "),
+      text.highlight(action_hl)(item.action),
       text(" "),
       text(item.subject),
     }

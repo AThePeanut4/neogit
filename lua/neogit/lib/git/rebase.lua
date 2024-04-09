@@ -182,6 +182,7 @@ function M.update_rebase_status(state)
     end
 
     state.rebase.head = head:read():match("refs/heads/([^\r\n]+)")
+    state.rebase.current = 0
 
     local onto = rebase_file:joinpath("onto")
     if onto:exists() then
