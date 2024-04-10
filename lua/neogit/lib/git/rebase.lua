@@ -203,9 +203,9 @@ function M.update_rebase_status(state)
         if line:match("^[^#]") and line ~= "" then
           local oid = line:match("^%w+ (%x+)")
           table.insert(state.rebase.items, {
-            action = line:match("^(%w+) "),
+            action = line:match("^%w+"),
             oid = oid,
-            abbreviated_commit = oid:sub(1, git.log.abbreviated_size()),
+            abbreviated_commit = oid and oid:sub(1, git.log.abbreviated_size()),
             subject = line:match("^%w+ %x+ (.+)$"),
             done = true,
           })
@@ -227,9 +227,9 @@ function M.update_rebase_status(state)
           local oid = line:match("^%w+ (%x+)")
           table.insert(state.rebase.items, {
             done = false,
-            action = line:match("^(%w+) "),
+            action = line:match("^%w+"),
             oid = oid,
-            abbreviated_commit = oid:sub(1, git.log.abbreviated_size()),
+            abbreviated_commit = oid and oid:sub(1, git.log.abbreviated_size()),
             subject = line:match("^%w+ %x+ (.+)$"),
           })
         end
