@@ -186,15 +186,37 @@ function M.update_rebase_status(state)
 
     local onto = rebase_file:joinpath("onto")
     if onto:exists() then
-      state.rebase.onto.oid = vim.trim(onto:read())
-      state.rebase.onto.subject = git.log.message(state.rebase.onto.oid)
-      state.rebase.onto.ref = git.cli["name-rev"].name_only.no_undefined
-        .refs("refs/heads/*")
-        .exclude("*/HEAD")
-        .exclude("*/refs/heads/*")
-        .args(state.rebase.onto.oid)
-        .call({ hidden = true }).stdout[1]
-      state.rebase.onto.is_remote = not git.branch.exists(state.rebase.onto.ref)
+      local oid = vim.trim(onto:read())
+      state.rebase.onto.oid = oid
+      state.rebase.onto.subject = git.log.message(oid)
+
+      -- When rebasing with --root, a empty root commit is created,
+      -- onto which the first rebased commit is squashed. The oid of
+      -- this commit is saved to the squash-onto file, so we can use
+      -- that file to detect whether we're doing a --root rebase.
+      local squash_onto_oid
+      local squash_onto = rebase_file:joinpath("squash-onto")
+      if squash_onto:exists() then
+        squash_onto_oid = vim.trim(squash_onto:read())
+      end
+      if squash_onto_oid == oid then
+        state.rebase.onto.ref = "<root>"
+        state.rebase.onto.is_remote = false
+      else
+        local ref = git.cli["name-rev"].name_only
+          .refs("refs/heads/*")
+          .exclude("*/HEAD")
+          .exclude("*/refs/heads/*")
+          .args(oid)
+          .call({ hidden = true }).stdout[1]
+        if ref ~= "undefined" then
+          state.rebase.onto.ref = ref
+          state.rebase.onto.is_remote = not git.branch.exists(ref)
+        else
+          state.rebase.onto.ref = oid:sub(1, git.log.abbreviated_size())
+          state.rebase.onto.is_remote = false
+        end
+      end
     end
 
     local done = rebase_file:joinpath("done")
