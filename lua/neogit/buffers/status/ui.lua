@@ -325,8 +325,7 @@ local SectionItemRebase = Component.new(function(item)
 end)
 
 local SectionItemSequencer = Component.new(function(item)
-  local action_hl = (item.action == "join" and "NeogitGraphRed")
-    or (item.action == "onto" and "NeogitGraphBlue")
+  local action_hl = (item.action == "onto" and "NeogitGraphBlue")
     or "NeogitGraphOrange"
 
   local show_action = #item.action > 0
@@ -508,14 +507,14 @@ function M.Status(state, config)
         show_cherry_pick and SequencerSection {
           title = SectionTitle { title = "Cherry Picking" },
           render = SectionItemSequencer,
-          items = util.reverse(state.sequencer.items),
+          items = state.sequencer.items,
           folded = config.sections.sequencer.folded,
           name = "cherry_pick",
         },
         show_revert and SequencerSection {
           title = SectionTitle { title = "Reverting" },
           render = SectionItemSequencer,
-          items = util.reverse(state.sequencer.items),
+          items = state.sequencer.items,
           folded = config.sections.sequencer.folded,
           name = "revert",
         },

@@ -5,7 +5,7 @@ local git = require("neogit.lib.git")
 local M = {}
 
 function M.create(env)
-  local in_progress = git.sequencer.pick_or_revert_in_progress()
+  local in_progress = git.repo.state.sequencer.cherry_pick
 
   -- TODO
   -- :switch("x", "x", "Reference cherry in commit message", { cli_prefix = "-" })
