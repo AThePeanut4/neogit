@@ -10,8 +10,9 @@ local M = {}
 ---@field action string
 ---@field oid string
 ---@field abbreviated_commit string
----@field subject string
+---@field subject string|nil
 
+---@param state NeogitRepo
 function M.update_sequencer_status(state)
   state.sequencer = { items = {}, revert = false, cherry_pick = false }
 

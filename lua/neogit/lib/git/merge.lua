@@ -39,8 +39,9 @@ end
 ---Not used, just for a consistent interface
 
 M.register = function(meta)
+  ---@param state NeogitRepo
   meta.update_merge_status = function(state)
-    state.merge = { head = nil, branch = nil, msg = "", items = {} }
+    state.merge = { head = nil, subject = nil, msg = nil, branch = nil, items = {} }
 
     local merge_head = git.repo:git_path("MERGE_HEAD")
     if not merge_head:exists() then
@@ -52,8 +53,11 @@ M.register = function(meta)
 
     local message = git.repo:git_path("MERGE_MSG")
     if message:exists() then
-      state.merge.msg = message:read():match("([^\r\n]+)") -- we need \r? to support windows
-      state.merge.branch = state.merge.msg:match("Merge branch '(.*)'$")
+      local msg = message:read():match("([^\r\n]+)") -- we need \r? to support windows
+      if msg then
+        state.merge.msg = msg
+        state.merge.branch = msg:match("Merge branch '(.*)'$")
+      end
     end
   end
 end

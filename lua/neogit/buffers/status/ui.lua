@@ -71,35 +71,39 @@ local HINT = Component.new(function(props)
 end)
 
 local HEAD = Component.new(function(props)
+  local oid = props.head.oid
+  local abbrev = props.head.abbrev
+  local remote = props.head.remote
+  local branch = props.head.branch
+  local msg = props.head.commit_message
   local show_oid = props.show_oid
+
   local highlight, ref
-  if props.branch == "(detached)" then
-    highlight = "NeogitBranch"
-    ref = props.branch
-    show_oid = true
-  elseif props.remote then
+  if remote then
     highlight = "NeogitRemote"
-    ref = ("%s/%s"):format(props.remote, props.branch)
+    ref = ("%s/%s"):format(remote, branch)
   else
     highlight = "NeogitBranch"
-    ref = props.branch
+    ref = branch
+    if branch == "(detached)" then
+      show_oid = true
+    end
   end
 
-  local oid = props.yankable
   if not oid or oid == "(initial)" then
-    oid = "0000000"
-  else
-    oid = oid:sub(1, 7)
+    oid = nil
+    abbrev = "0000000"
+    msg = "(no commits)"
   end
 
   return row({
     text(util.pad_right(props.name .. ":", 10)),
-    text.highlight("Comment")(show_oid and oid or ""),
+    text.highlight("Comment")(show_oid and abbrev or ""),
     text(show_oid and " " or ""),
     text.highlight(highlight)(ref),
     text(" "),
-    text(props.msg or "(no commits)"),
-  }, { yankable = props.yankable })
+    text(msg),
+  }, { yankable = oid })
 end)
 
 local Tag = Component.new(function(props)
@@ -138,7 +142,7 @@ local SectionTitleRebase = Component.new(function(props)
       text(" "),
       text.highlight("NeogitBranch")(props.head),
       text.highlight("NeogitSectionHeader")(" onto "),
-      text.highlight(props.is_remote_ref and "NeogitRemote" or "NeogitBranch")(props.onto),
+      text.highlight(props.onto.is_remote and "NeogitRemote" or "NeogitBranch")(props.onto.ref),
     }
   else
     return {
@@ -388,6 +392,8 @@ local BisectDetailsSection = Component.new(function(props)
   })
 end)
 
+---@param state NeogitRepo
+---@param config NeogitConfig
 function M.Status(state, config)
   -- stylua: ignore start
   local show_hint = not config.disable_hint
@@ -455,26 +461,17 @@ function M.Status(state, config)
         show_hint and EmptyLine(),
         HEAD {
           name = "Head",
-          branch = state.head.branch,
-          oid = state.head.abbrev,
-          msg = state.head.commit_message,
-          yankable = state.head.oid,
+          head = state.head,
           show_oid = config.show_head_commit_hash,
         },
         show_upstream and HEAD {
           name = "Merge",
-          branch = state.upstream.branch,
-          remote = state.upstream.remote,
-          msg = state.upstream.commit_message,
-          yankable = state.upstream.oid,
+          head = state.upstream,
           show_oid = config.show_head_commit_hash,
         },
         show_pushRemote and HEAD {
           name = "Push",
-          branch = state.pushRemote.branch,
-          remote = state.pushRemote.remote,
-          msg = state.pushRemote.commit_message,
-          yankable = state.pushRemote.oid,
+          head = state.pushRemote,
           show_oid = config.show_head_commit_hash,
         },
         show_tag and Tag {
@@ -494,9 +491,7 @@ function M.Status(state, config)
           title = SectionTitleRebase {
             title = "Rebasing",
             head = state.rebase.head,
-            onto = state.rebase.onto.ref,
-            oid = state.rebase.onto.oid,
-            is_remote_ref = state.rebase.onto.is_remote,
+            onto = state.rebase.onto,
           },
           render = SectionItemRebase,
           current = state.rebase.current,

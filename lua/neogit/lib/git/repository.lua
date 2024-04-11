@@ -64,21 +64,20 @@ local modules = {
 ---
 ---@class NeogitRepoSequencer
 ---@field items          SequencerItem[]
----@field head           string|nil
----@field head_oid       string|nil
 ---@field revert         boolean
 ---@field cherry_pick    boolean
 ---
 ---@class NeogitRepoRebase
 ---@field items          RebaseItem[]
----@field onto           RebaseOnto
+---@field onto           RebaseOnto|nil
 ---@field head           string|nil
----@field current        string|nil
+---@field current        integer|nil
 ---
 ---@class NeogitRepoMerge
 ---@field items          MergeItem[]
 ---@field head           string|nil
----@field msg            string
+---@field subject        string|nil
+---@field msg            string|nil
 ---@field branch         string|nil
 ---
 ---@class NeogitRepoBisect
@@ -126,14 +125,12 @@ local function empty_state()
     recent = { items = {} },
     rebase = {
       items = {},
-      onto = {},
+      onto = nil,
       head = nil,
       current = nil,
     },
     sequencer = {
       items = {},
-      head = nil,
-      head_oid = nil,
       revert = false,
       cherry_pick = false,
     },

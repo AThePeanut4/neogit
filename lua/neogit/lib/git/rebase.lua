@@ -149,9 +149,9 @@ end
 
 ---@class RebaseItem
 ---@field action string
----@field oid string
----@field abbreviated_commit string
----@field subject string
+---@field oid string|nil
+---@field abbreviated_commit string|nil
+---@field subject string|nil
 ---@field done boolean
 ---@field stopped boolean
 
@@ -161,8 +161,9 @@ end
 ---@field ref string
 ---@field is_remote boolean
 
+---@param state NeogitRepo
 function M.update_rebase_status(state)
-  state.rebase = { items = {}, onto = {}, head = nil, current = nil }
+  state.rebase = { items = {}, onto = nil, head = nil, current = nil }
 
   local rebase_file
   local rebase_merge = git.repo:git_path("rebase-merge")
@@ -187,8 +188,7 @@ function M.update_rebase_status(state)
     local onto = rebase_file:joinpath("onto")
     if onto:exists() then
       local oid = vim.trim(onto:read())
-      state.rebase.onto.oid = oid
-      state.rebase.onto.subject = git.log.message(oid)
+      local ref, is_remote
 
       -- When rebasing with --root, a empty root commit is created,
       -- onto which the first rebased commit is squashed. The oid of
@@ -200,36 +200,44 @@ function M.update_rebase_status(state)
         squash_onto_oid = vim.trim(squash_onto:read())
       end
       if squash_onto_oid == oid then
-        state.rebase.onto.ref = "<root>"
-        state.rebase.onto.is_remote = false
+        ref = "<root>"
+        is_remote = false
       else
-        local ref = git.cli["name-rev"].name_only
+        ref = git.cli["name-rev"].name_only
           .refs("refs/heads/*")
           .exclude("*/HEAD")
           .exclude("*/refs/heads/*")
           .args(oid)
           .call({ hidden = true }).stdout[1]
         if ref ~= "undefined" then
-          state.rebase.onto.ref = ref
-          state.rebase.onto.is_remote = not git.branch.exists(ref)
+          is_remote = not git.branch.exists(ref)
         else
-          state.rebase.onto.ref = oid:sub(1, git.log.abbreviated_size())
-          state.rebase.onto.is_remote = false
+          ref = oid:sub(1, git.log.abbreviated_size())
+          is_remote = false
         end
       end
+
+      state.rebase.onto = {
+        oid = oid,
+        subject = git.log.message(oid),
+        ref = ref,
+        is_remote = is_remote,
+      }
     end
 
     local done = rebase_file:joinpath("done")
     if done:exists() then
       for line in done:iter() do
-        if line:match("^[^#]") and line ~= "" then
+        local action = line:match("^%w+")
+        if action then
           local oid = line:match("^%w+ (%x+)")
           table.insert(state.rebase.items, {
-            action = line:match("^%w+"),
+            action = action,
             oid = oid,
             abbreviated_commit = oid and oid:sub(1, git.log.abbreviated_size()),
             subject = line:match("^%w+ %x+ (.+)$"),
             done = true,
+            stopped = false,
           })
         end
       end
@@ -245,26 +253,29 @@ function M.update_rebase_status(state)
     local todo = rebase_file:joinpath("git-rebase-todo")
     if todo:exists() then
       for line in todo:iter() do
-        if line:match("^[^#]") and line ~= "" then
+        local action = line:match("^%w+")
+        if action then
           local oid = line:match("^%w+ (%x+)")
           table.insert(state.rebase.items, {
-            done = false,
-            action = line:match("^%w+"),
+            action = action,
             oid = oid,
             abbreviated_commit = oid and oid:sub(1, git.log.abbreviated_size()),
             subject = line:match("^%w+ %x+ (.+)$"),
+            done = false,
+            stopped = false,
           })
         end
       end
     end
 
-    if onto:exists() then
+    if state.rebase.onto then
       table.insert(state.rebase.items, {
-        done = false,
         action = "onto",
         oid = state.rebase.onto.oid,
         abbreviated_commit = state.rebase.onto.oid:sub(1, git.log.abbreviated_size()),
         subject = state.rebase.onto.subject,
+        done = false,
+        stopped = false,
       })
     end
   end
